@@ -1,4 +1,4 @@
-# Minecraft bot stress tester
+# Minecraft bot stress tester but better
 🤖 A simple open source app written in Java used for stress testing Minecraft servers with bots (fake players).  
 💥 It can be also used to test plugins or minigames.  
 ✔️ The MC version of the bots is 1.20.6  
@@ -13,6 +13,7 @@ For older MC versions please look in the [releases](https://github.com/crpmax/mc
 - ✅ Generate random or real looking nicknames or load from file
 - ✅ Online (premium) account support with login using Microsoft OAuth - only for migrated accounts  
 - ✅ Control all or selected bots
+- ✅ Auto reconnect
 
 ## 📖 Usage
 Minimal Java version: 17  
@@ -21,7 +22,7 @@ Use of pre-compiled jar from [releases](https://github.com/crpmax/mc-bots/releas
 When running, you can write a chat message to the terminal to send it by all bots.
 
 ## 🧪 Example
-`java -jar mc-bots-1.2.11.jar -s 192.168.0.189:25565 -p BOT_ -d 4000 5000 -c 30 -r`  
+`java -jar mc-bots.jar -s 192.168.0.189:25565 -p BOT_ -d 4000 5000 -c 30 -r`  
 This will connect 30 bots to server at 192.168.0.189:25565 with delay 4000-5000 ms and will use real-looking nicknames prefixed with BOT_
 
 <img src="https://imgur.com/XWcckas.png" title="Connected bots" width="350px"/>
@@ -43,6 +44,8 @@ This will connect 30 bots to server at 192.168.0.189:25565 with delay 4000-5000 
 `-o` Use online (premium) account (login with Microsoft OAuth)  
 `-ar <delay>` Set auto-respawn delay (default is 100 ms, set to -1 to disable)  
 `--nicks <file>` Set nicknames file  
+`-arec` Enable auto reconnecting<br>
+`-arec-p` Enable auto reconnecting with same proxy (requires `-arec` to be enabled too)
 
 
 ## Commands
