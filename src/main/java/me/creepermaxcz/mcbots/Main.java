@@ -130,6 +130,10 @@ public class Main {
                                 int port = Integer.parseInt(parts[1]);
                                 proxies.add(new InetSocketAddress(parts[0], port));
                                 proxyCount++;
+                            } else if (parts.length == 1) {
+                                int port = 443;
+                                proxies.add(new InetSocketAddress(parts[0], port));
+                                proxyCount++;
                             }
                         }
                         catch (Exception ignored) { }
