@@ -27,14 +27,14 @@ import java.util.stream.Collectors;
 public class Main {
 
     public static boolean coloredChat = true;
-    static ArrayList<Bot> bots = new ArrayList<>();
+    static HashMap<Bot, ProxyInfo> bots = new HashMap<>();
     private static int triedToConnect;
     private static int botCount;
     private static boolean isMainListenerMissing = true;
     private static final SecureRandom random = new SecureRandom();
     private static int delayMin = 4000;
     private static int delayMax = 5000;
-    private static boolean minimal = false;
+    public static boolean minimal = false;
     private static boolean mostMinimal = false;
     public static ArrayList<String> joinMessages = new ArrayList<>();
 
@@ -42,11 +42,14 @@ public class Main {
 
     public static int autoRespawnDelay = 100;
 
-    private static boolean useProxies = false;
-    private static final ArrayList<InetSocketAddress> proxies = new ArrayList<>();
-    private static int proxyIndex = 0;
-    private static int proxyCount = 0;
-    private static ProxyInfo.Type proxyType;
+    public static boolean autoReconnect = false;
+    public static boolean autoReconnectWithSameProxy = false;
+
+    public static boolean useProxies = false;
+    public static final ArrayList<InetSocketAddress> proxies = new ArrayList<>();
+    public static int proxyIndex = 0;
+    public static int proxyCount = 0;
+    public static ProxyInfo.Type proxyType;
 
     private static final String CLIENT_ID = "8bef943e-5a63-429e-a93a-96391d2e32a9";
 
@@ -84,6 +87,9 @@ public class Main {
         options.addOption("o", "online", false, "Use online mode (premium) account");
 
         options.addOption("ar", "auto-respawn", true, "Set autorespawn delay (-1 to disable)");
+
+        options.addOption("arec", "auto-reconnect", false, "Enable auto reconnect");
+        options.addOption("arec-p", "auto-reconnect-proxy", false, "Auto Reconnect with same proxy as the bot had at the first join");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
@@ -367,7 +373,7 @@ public class Main {
 
                     bot.start();
 
-                    if (!mostMinimal) bots.add(bot);
+                    if (!mostMinimal) bots.put(bot, proxyInfo);
 
                     triedToConnect++;
 
@@ -389,12 +395,22 @@ public class Main {
             }
         }).start();
 
+        if (cmd.hasOption("arec")) {
+            autoReconnect = true;
+        }
+
+        if (cmd.hasOption("arec-p")) {
+            autoReconnectWithSameProxy = true;
+        }
+
         //gravity timer
         if (cmd.hasOption("g")) {
             timer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    bots.forEach(Bot::fallDown);
+                    bots.forEach((bot, proxy) -> {
+                        bot.fallDown();
+                    });
                 }
             }, 1000L, 500L);
         }
@@ -477,7 +493,7 @@ public class Main {
                 // List command
                 else if (commandName.equalsIgnoreCase("list") || commandName.equalsIgnoreCase("ls")) {
                     Log.info("There are " + bots.size() + " bots connected:");
-                    for (Bot bot : bots) {
+                    for (Bot bot : bots.keySet()) {
                         Log.info(bot.getNickname(), bot.hasMainListener() ? "[MainListener]" : "");
                     }
                 } else if (commandName.equalsIgnoreCase("leave") || commandName.equalsIgnoreCase("exit")) {
@@ -503,7 +519,7 @@ public class Main {
                         }
                     } else {
                         Log.info("Disconnecting all bots.");
-                        for (Bot bot : bots) {
+                        for (Bot bot : bots.keySet()) {
                             if (i++ == limit) {
                                 break;
                             }
@@ -517,7 +533,7 @@ public class Main {
             } else if (controlledBots.size() > 0) {
                 controlledBots.forEach(bot -> bot.sendChat(line));
             } else {
-                bots.forEach(bot -> bot.sendChat(line));
+                bots.forEach((bot, proxy) -> bot.sendChat(line));
             }
 
             Thread.sleep(50);
@@ -528,7 +544,7 @@ public class Main {
     }
 
     public static synchronized void renewMainListener() {
-        bots.get(0).registerMainListener();
+        bots.keySet().iterator().next().registerMainListener();
     }
 
     public static synchronized void removeBot(Bot bot) {
@@ -562,7 +578,7 @@ public class Main {
     }
 
     public static Bot findBotByName(String text) {
-        for (Bot bot : bots) {
+        for (Bot bot : bots.keySet()) {
             // Starts with and ignore case
             // https://stackoverflow.com/a/38947571/11787611
             if (bot.getNickname().regionMatches(true, 0, text, 0, text.length())) {

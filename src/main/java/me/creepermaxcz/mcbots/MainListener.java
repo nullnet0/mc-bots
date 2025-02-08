@@ -1,5 +1,6 @@
 package me.creepermaxcz.mcbots;
 
+import org.geysermc.mcprotocollib.network.ProxyInfo;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.event.session.*;
 import org.geysermc.mcprotocollib.network.packet.Packet;
@@ -8,6 +9,9 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.Clientbound
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TranslatableComponent;
+
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 
 public class MainListener implements SessionListener {
 
@@ -81,6 +85,57 @@ public class MainListener implements SessionListener {
 
     @Override
     public void disconnected(DisconnectedEvent event) {
+        if (Main.autoReconnect) {
+            try {
+                Bot disconnectedBot = Main.bots.keySet().stream()
+                        .filter(bot -> !bot.isConnected())
+                        .findFirst()
+                        .orElse(null);
 
+                if (disconnectedBot != null) {
+                    Bot newBot = null;
+                    ProxyInfo proxyInfo = null;
+                    if (Main.autoReconnectWithSameProxy) {
+                        proxyInfo = Main.bots.get(disconnectedBot);
+                        newBot = new Bot(
+                                disconnectedBot.getName(),
+                                new InetSocketAddress(event.getSession().getHost(), event.getSession().getPort()),
+                                proxyInfo
+                        );
+                    } else {
+                        InetSocketAddress proxySocket = Main.proxies.get(Main.proxyIndex);
+
+                        if (!Main.minimal) {
+                            Log.info(
+                                    "Using proxy: (" + Main.proxyIndex + ")",
+                                    proxySocket.getHostString() + ":" + proxySocket.getPort()
+                            );
+                        }
+
+                        proxyInfo = new ProxyInfo(
+                                Main.proxyType,
+                                proxySocket
+                        );
+
+                        //increment or reset current proxy index
+                        if (Main.proxyIndex < (Main.proxyCount - 1)) {
+                            Main.proxyIndex++;
+                        } else {
+                            Main.proxyIndex = 0;
+                        }
+                    }
+                    newBot.start();
+
+                    Main.bots.remove(disconnectedBot);
+                    Main.bots.put(newBot, proxyInfo);
+
+                    newBot.registerMainListener();
+                    Log.info("Bot reconnected successfully.");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
+
 }
